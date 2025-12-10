@@ -224,5 +224,10 @@ int main(int argc, char *argv[]) {
         im_free(&draw);
     }
 
+    cleanup_SIFT3D_Descriptor_store (&desc);
+    cleanup_Keypoint_store (&kp);
+    cleanup_SIFT3D (&sift3d);
+    im_free (&im);
+
     return 0;
 }
