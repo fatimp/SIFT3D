@@ -20,7 +20,7 @@ extern "C" {
 #define SIFT3D_FILE_DOES_NOT_EXIST 1 /* The file does not exist */
 #define SIFT3D_UNSUPPORTED_FILE_TYPE 2 /* The file type is not supported */
 #define SIFT3D_WRAPPER_NOT_COMPILED 3 /* The file type is supported, but the 
-                                     * wrapper library was not compiled. */
+                                       * wrapper library was not compiled. */
 #define SIFT3D_UNEVEN_SPACING 4 /* The image slices are not evenly spaced. */
 #define SIFT3D_INCONSISTENT_AXES 5 /* The image slices have inconsistent 
                                     * axes. */
@@ -41,15 +41,15 @@ void clFinish_all();
 void check_cl_error(int err, const char *msg);
 
 int init_cl(CL_data *user_cl_data, const char *platform_name, 
-			cl_device_type device_type,	cl_mem_flags mem_flags, 
-			cl_image_format image_format);
+            cl_device_type device_type, cl_mem_flags mem_flags, 
+            cl_image_format image_format);
 
 void init_Mesh(Mesh * const mesh);
 
 void cleanup_Mesh(Mesh * const mesh);
 
 int convert_Mat_rm(const Mat_rm *const in, Mat_rm *const out, 
-        const Mat_rm_type type);
+                   const Mat_rm_type type);
 
 int init_Mat_rm(Mat_rm *const mat, const int num_rows, const int num_cols,
                 const Mat_rm_type type, const int set_zero);
@@ -61,7 +61,7 @@ int init_Mat_rm_p(Mat_rm *const mat, const void *const p, const int num_rows,
 void sprint_type_Mat_rm(const Mat_rm *const mat, char *const str);
 
 int concat_Mat_rm(const Mat_rm * const src1, const Mat_rm * const src2,
-		    Mat_rm * const dst, const int dim);
+                  Mat_rm * const dst, const int dim);
 
 int set_Mat_rm_zero(Mat_rm *mat);
 
@@ -74,10 +74,10 @@ int resize_Mat_rm(Mat_rm *const mat);
 int eigen_Mat_rm(Mat_rm *A, Mat_rm *Q, Mat_rm *L);
 
 int solve_Mat_rm(const Mat_rm *const A, const Mat_rm *const B, 
-        const double limit, Mat_rm *const X);
+                 const double limit, Mat_rm *const X);
 
 int solve_Mat_rm_ls(const Mat_rm *const A, const Mat_rm *const B, 
-        Mat_rm *const X);
+                    Mat_rm *const X);
 
 int transpose_Mat_rm(const Mat_rm *const src, Mat_rm *const dst);
 
@@ -99,10 +99,10 @@ int Affine_set_mat(const Mat_rm *const mat, Affine *const affine);
 
 void apply_tform_xyz(const void *const tform, const double x_in, 
                      const double y_in, const double z_in, double *const x_out,
-		     double *const y_out, double *const z_out);
+                     double *const y_out, double *const z_out);
 
 int apply_tform_Mat_rm(const void *const tform, const Mat_rm *const mat_in, 
-        Mat_rm *const mat_out);
+                       Mat_rm *const mat_out);
 
 tform_type tform_get_type(const void *const tform);
 
@@ -115,16 +115,16 @@ void cleanup_tform(void *const tform);
 int write_tform(const char *path, const void *const tform);
 
 int mul_Mat_rm(const Mat_rm *const mat_in1, const Mat_rm *const mat_in2, 
-        Mat_rm *const mat_out);
+               Mat_rm *const mat_out);
 
 int draw_grid(Image *grid, int nx, int ny, int nz, int spacing, 
-					   int line_width);
+              int line_width);
 
 int draw_points(const Mat_rm *const in, const int *const dims, int radius, 
                 Image *const out);
 
 int draw_lines(const Mat_rm *const points1, const Mat_rm *const points2, 
-	       const int *const dims, Image *const out);
+               const int *const dims, Image *const out);
 
 im_format im_get_format(const char *path);
 
@@ -137,7 +137,7 @@ char *im_get_parent_dir(const char *path);
 int write_Mat_rm(const char *path, const Mat_rm *const mat);
 
 int init_im_with_dims(Image *const im, const int nx, const int ny, const int nz,
-                        const int nc);
+                      const int nc);
 
 int im_load_cl(Image *im, int blocking);
 
@@ -148,7 +148,7 @@ int im_copy_data(const Image *const src, Image *const dst);
 void im_free(Image *im);
 
 int im_channel(const Image * const src, Image * const dst,
-	       const unsigned int chan);
+               const unsigned int chan);
 
 int im_downsample_2x(const Image *const src, Image *const dst);
 
@@ -159,7 +159,7 @@ int im_read_back(Image *im, int blocking);
 int im_set_kernel_arg(cl_kernel kernel, int n, Image *im);
 
 int im_permute(const Image *const src, const int dim1, const int dim2, 
-		 Image *const dst);
+               Image *const dst);
 
 int im_upsample_2x(const Image *const src, Image *const dst);
 
@@ -170,7 +170,7 @@ void im_default_stride(Image *const im);
 int im_resize(Image *const im);
 
 int im_concat(const Image *const src1, const Image *const src2, const int dim, 
-	      Image *const dst);
+              Image *const dst);
 
 float im_max_abs(const Image *const im);
 
@@ -183,11 +183,11 @@ void im_zero(Image *im);
 void im_Hessian(Image *im, int x, int y, int z, Mat_rm *H);
 
 int im_inv_transform(const void *const tform, const Image * const src,
-		     const interp_type interp, const int resize, 
+                     const interp_type interp, const int resize, 
                      Image *const dst);
 
 int im_resample(const Image *const src, const double *const units, 
-	const interp_type interp, Image *const dst);
+                const interp_type interp, Image *const dst);
 
 void init_im(Image *const im);
 
@@ -195,13 +195,14 @@ int init_Gauss_filter(Gauss_filter *const gauss, const double sigma,
                       const int dim);
 
 int init_Gauss_incremental_filter(Gauss_filter *const gauss, 
-                const double s_cur, const double s_next, const int dim); 
+                                  const double s_cur, const double s_next,
+                                  const int dim); 
 
 int init_Sep_FIR_filter(Sep_FIR_filter *const f, const int dim, const int width,
-			const float *const kernel, const int symmetric);
+                        const float *const kernel, const int symmetric);
 
 int apply_Sep_FIR_filter(const Image *const src, Image *const dst, 
-        Sep_FIR_filter *const f, const double unit);
+                         Sep_FIR_filter *const f, const double unit);
 
 void cleanup_Sep_FIR_filter(Sep_FIR_filter *const f);
 
@@ -218,12 +219,12 @@ void init_Pyramid(Pyramid *const pyr);
 int copy_Pyramid(const Pyramid *const src, Pyramid *const dst);
 
 int resize_Pyramid(const Image *const im, const int first_level, 
-        const unsigned int num_kp_levels, const unsigned int num_levels,
-        const int first_octave, const unsigned int num_octaves, 
-        Pyramid *const pyr);
+                   const unsigned int num_kp_levels, const unsigned int num_levels,
+                   const int first_octave, const unsigned int num_octaves, 
+                   Pyramid *const pyr);
 
 int set_scales_Pyramid(const double sigma0, const double sigma_n, 
-        Pyramid *const pyr);
+                       Pyramid *const pyr);
 
 void cleanup_Pyramid(Pyramid *const pyr);
 
@@ -238,7 +239,7 @@ int write_pyramid(const char *path, Pyramid *pyr);
 void err_exit(const char *str);
 
 void init_Ransac(Ransac *const ran);
-					  
+                      
 int set_err_thresh_Ransac(Ransac *const ran, double err_thresh);
 
 int set_num_iter_Ransac(Ransac *const ran, int num_iter);
@@ -246,7 +247,7 @@ int set_num_iter_Ransac(Ransac *const ran, int num_iter);
 int copy_Ransac(const Ransac *const src, Ransac *const dst);
 
 int find_tform_ransac(const Ransac *const ran, const Mat_rm *const src, 
-        const Mat_rm *const ref, void *const tform);
+                      const Mat_rm *const ref, void *const tform);
 
 int parse_gnu(const int argc, char *const *argv);
 
