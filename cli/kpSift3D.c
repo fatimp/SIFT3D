@@ -11,17 +11,13 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <getopt.h>
-#include "immacros.h"
-#include "imutil.h"
-#include "sift.h"
+#include <imutil.h>
+#include <sift.h>
 
 /* Options */
 #define KEYS 'a'
 #define DESC 'b'
 #define HELP 1
-
-/* Message buffer size */
-#define BUF_SIZE 1024
 
 /* Help message */
 const char help_msg[] = 
@@ -42,25 +38,13 @@ const char help_msg[] =
     "       Supported file formats: .csv, .csv.gz \n"
     "At least one of the output options must be specified. \n";
 
-/* Print an error message */
-static void err_msg(const char *msg) {
-    SIFT3D_ERR("kpSift3D: %s \n"
-               "Use \"kpSift3D --help\" for more information. \n", msg);
-}
-
-/* Report an unexpected error. */
-static void err_msgu(const char *msg) {
-    err_msg(msg);
-    exit(EXIT_FAILURE);
-}
-
 /* CLI for 3D SIFT */
 int main(int argc, char *argv[]) {
-
-    sift3d_image im;
-    sift3d_detector sift3d;
-    sift3d_keypoint_store kp;
-    sift3d_descriptor_store desc;
+    sift3d_image *image           = NULL;
+    sift3d_detector *sift3d       = NULL;
+    sift3d_keypoint_store *kp     = NULL;
+    sift3d_descriptor_store *desc = NULL;
+    int retcode                   = 0;
     char *im_path, *keys_path, *desc_path;
     int c, num_args;
 
@@ -70,12 +54,6 @@ int main(int argc, char *argv[]) {
         {"help", no_argument, NULL, HELP},
         {0, 0, 0, 0}
     };
-
-    // Initialize the SIFT data 
-    if (init_SIFT3D(&sift3d)) {
-        err_msgu("Failed to initialize SIFT data.");
-        return 1;
-    }
 
     // Parse the kpSift3d options
     opterr = 1;
@@ -99,74 +77,89 @@ int main(int argc, char *argv[]) {
 
     // Ensure we have at least one output
     if (keys_path == NULL && desc_path == NULL) {
-        err_msg("No outputs specified.");
+        fprintf (stderr, "No outputs specified.\n");
         return 1;
     }
 
     // Parse the required arguments
     num_args = argc - optind;
     if (num_args < 1) {
-        err_msg("Not enough arguments.");
+        fprintf (stderr, "Not enough arguments.\n");
         return 1;
     } else if (num_args > 1) {
-        err_msg("Too many arguments.");
+        fprintf (stderr, "Too many arguments.\n");
         return 1;
     }
     im_path = argv[optind];
 
+    // Initialize the SIFT data 
+    sift3d = sift3d_make_detector ();
+    if (sift3d == NULL) {
+        fprintf (stderr, "Failed to initialize SIFT data.\n");
+        retcode = 1;
+        goto done;
+    }
+
     // Initialize data 
-    init_Keypoint_store(&kp); 
-    init_SIFT3D_Descriptor_store(&desc); 
-    init_im(&im);
+    kp = sift3d_make_keypoint_store();
+    desc = sift3d_make_descriptor_store();
 
     // Read the image
-    if (im_read(im_path, &im)) {
-        err_msg("Could not read image.");
-        return 1;
+    image = sift3d_read_image(im_path);
+    if (image == NULL) {
+        fprintf (stderr, "Could not read image.\n");
+        retcode = 1;
+        goto done;
     }
 
     // Extract keypoints
-    if (SIFT3D_detect_keypoints(&sift3d, &im, &kp)) {
-        err_msgu("Failed to detect keypoints.");
-        return 1;
+    if (sift3d_detect_keypoints(sift3d, image, kp)) {
+        fprintf (stderr, "Failed to detect keypoints.\n");
+        retcode = 1;
+        goto done;
     }
 
     // Optionally write the keypoints 
-    if (keys_path != NULL && write_Keypoint_store(keys_path, &kp)) {
-
-        char msg[BUF_SIZE];
-
-        snprintf(msg, BUF_SIZE, "Failed to write the keypoints to "
-                 "\"%s\"", keys_path);
-        err_msg(msg);
-        return 1;
+    if (keys_path != NULL && sift3d_keypoint_store_save (keys_path, kp)) {
+        fprintf(stderr, "Failed to write the keypoints to %s\n", keys_path);
+        retcode = 1;
+        goto done;
     }
 
     // Optionally extract descriptors
     if (desc_path != NULL) {
 
         // Extract descriptors
-        if (SIFT3D_extract_descriptors(&sift3d, &kp,&desc)) {
-            err_msgu("Failed to extract descriptors.");
-            return 1;
+        if (sift3d_extract_descriptors(sift3d, kp, desc)) {
+            fprintf (stderr, "Failed to extract descriptors.\n");
+            retcode = 1;
+            goto done;
         }
 
         // Write the descriptors
-        if (write_SIFT3D_Descriptor_store(desc_path, &desc)) {
-
-            char msg[BUF_SIZE];
-
-            snprintf(msg, BUF_SIZE, "Failed to write the "
-                     "descriptors to \"%s\"", desc_path);
-            err_msg(msg);
-            return 1;
+        if (sift3d_descriptor_store_save (desc_path, desc)) {
+            fprintf(stderr, "Failed to write the descriptors to %s\n", desc_path);
+            retcode = 1;
+            goto done;
         }
     }
 
-    cleanup_SIFT3D_Descriptor_store (&desc);
-    cleanup_Keypoint_store (&kp);
-    cleanup_SIFT3D (&sift3d);
-    im_free (&im);
+done:
+    if (desc != NULL) {
+        sift3d_free_descriptor_store (desc);
+    }
 
-    return 0;
+    if (kp != NULL) {
+        sift3d_free_keypoint_store (kp);
+    }
+
+    if (sift3d != NULL) {
+        sift3d_free_detector (sift3d);
+    }
+
+    if (image != NULL) {
+        sift3d_free_image (image);
+    }
+
+    return retcode;
 }

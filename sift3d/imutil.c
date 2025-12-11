@@ -17,10 +17,11 @@
 #include <string.h>
 #include <float.h>
 #include <zlib.h>
+#include <imutil.h>
 #include "immacros.h"
-#include "imtypes.h"
+#include "imtypes_private.h"
+#include "imutil_private.h"
 #include "nifti.h"
-#include "imutil.h"
 
 /* Stringify a macro name */
 #define STR(x) #x
@@ -93,6 +94,33 @@ void cleanup_Mesh(sift3d_mesh * const mesh)
     free(mesh->tri);
 }
 
+/* Set all elements to zero */
+static int zero_Mat_rm(sift3d_mat_rm *const mat) {
+    int i, j;
+
+#define SET_ZERO(type)                                  \
+    SIFT3D_MAT_RM_LOOP_START(mat, i, j)                 \
+        SIFT3D_MAT_RM_GET(mat, i, j, type) = (type) 0;  \
+    SIFT3D_MAT_RM_LOOP_END
+
+    switch (mat->type) {
+    case SIFT3D_DOUBLE:
+        SET_ZERO(double);
+        break;
+    case SIFT3D_FLOAT:
+        SET_ZERO(float);
+        break;
+    case SIFT3D_INT:
+        SET_ZERO(int);
+        break;
+    default:
+        return SIFT3D_FAILURE;
+    }
+#undef SET_ZERO
+
+    return SIFT3D_SUCCESS;
+}
+
 /* Shortcut function to initalize a matrix.
  * 
  * Parameters:
@@ -104,8 +132,7 @@ void cleanup_Mesh(sift3d_mesh * const mesh)
  *
  * Returns SIFT3D_SUCCESS on success, SIFT3D_FAILURE otherwise. */
 int init_Mat_rm(sift3d_mat_rm *const mat, const int num_rows, const int num_cols,
-                const sift3d_mat_rm_type type, const int set_zero) {
-
+                const sift3d_mat_type type, const int set_zero) {
     mat->type = type;
     mat->num_rows = num_rows;
     mat->num_cols = num_cols;
@@ -127,10 +154,9 @@ int init_Mat_rm(sift3d_mat_rm *const mat, const int num_rows, const int num_cols
  * cleanup_Mat_rm. But, an error will be thrown if the user attempts to resize
  * the memory. That is, resize_sift3d_mat_rm will only return success if the size of 
  * the matrix does not change. */ 
-int init_Mat_rm_p(sift3d_mat_rm *const mat, const void *const p, const int num_rows, 
-                  const int num_cols, const sift3d_mat_rm_type type, 
+int init_Mat_rm_p(sift3d_mat_rm *const mat, const void *const p, const int num_rows,
+                  const int num_cols, const sift3d_mat_type type,
                   const int set_zero) {
-
     // Perform normal initialization
     if (init_Mat_rm(mat, num_rows, num_cols, type, set_zero))
         return SIFT3D_FAILURE;
@@ -205,7 +231,7 @@ int resize_Mat_rm(sift3d_mat_rm *const mat) {
     const int num_cols = mat->num_cols;
     double **const data = &mat->u.data_double;
     const size_t numel = (size_t)num_rows * (size_t)num_cols;
-    const sift3d_mat_rm_type type = mat->type;
+    const sift3d_mat_type type = mat->type;
 
     // Get the size of the underyling datatype
     switch (type) {
@@ -252,67 +278,6 @@ int resize_Mat_rm(sift3d_mat_rm *const mat) {
     return SIFT3D_SUCCESS;
 }
 
-/* Set all elements to zero */
-int zero_Mat_rm(sift3d_mat_rm *const mat)
-{
-
-    int i, j;
-
-#define SET_ZERO(type)                                  \
-    SIFT3D_MAT_RM_LOOP_START(mat, i, j)                 \
-        SIFT3D_MAT_RM_GET(mat, i, j, type) = (type) 0;  \
-    SIFT3D_MAT_RM_LOOP_END
-
-    switch (mat->type) {
-    case SIFT3D_DOUBLE:
-        SET_ZERO(double);
-        break;
-    case SIFT3D_FLOAT:
-        SET_ZERO(float);
-        break;
-    case SIFT3D_INT:
-        SET_ZERO(int);
-        break;
-    default:
-        return SIFT3D_FAILURE;
-    }
-#undef SET_ZERO
-
-    return SIFT3D_SUCCESS;
-}
-
-/* Set a matrix to identity. 
- *
- * Parameters:
- *   n: The length of the square matrix. The output will have size [n x n].
- *   mat: The matrix to be set.
- */
-int identity_Mat_rm(const int n, sift3d_mat_rm *const mat) {
-
-    int i;
-
-    // Resize the matrix 
-    mat->num_rows = mat->num_cols = n;
-    if (resize_Mat_rm(mat))
-        return SIFT3D_FAILURE;
-
-    // Set to identity
-    zero_Mat_rm(mat);
-
-#define SET_IDENTITY(type)                              \
-    for (i = 0; i < n; i++) {                           \
-        SIFT3D_MAT_RM_GET(mat, i, i, type) = (type) 1;  \
-    }
-
-    SIFT3D_MAT_RM_TYPE_MACRO(mat, identity_Mat_rm_quit, SET_IDENTITY);
-#undef SET_IDENTITY
-
-    return SIFT3D_SUCCESS;
-
-identity_Mat_rm_quit:
-    return SIFT3D_FAILURE;
-}
-
 /* De-allocate the memory for a sift3d_mat_rm struct, unless it was initialized in
  * static mode. */
 void cleanup_Mat_rm(sift3d_mat_rm *mat) {
@@ -350,8 +315,7 @@ static const char *get_file_ext(const char *name)
 }
 
 /* Detect the format of the supplied file name. */
-sift3d_im_format im_get_format(const char *path) {
-
+static sift3d_im_format im_get_format(const char *path) {
     const char *ext;
 
     // If not a directory, get the file extension
@@ -514,6 +478,15 @@ write_mat_quit:
     return SIFT3D_FAILURE;
 }
 
+/* Zero an image. */
+static void im_zero(sift3d_image * im) {
+    int x, y, z, c;
+
+    SIFT3D_IM_LOOP_START_C(im, x, y, z, c)
+        SIFT3D_IM_GET_VOX(im, x, y, z, c) = 0.0f;
+    SIFT3D_IM_LOOP_END_C
+}
+
 /* Shortcut to initialize an image for first-time use.
  * Allocates memory, and assumes the default stride. This
  * function calls init_im and initializes all values to 0. */
@@ -650,8 +623,7 @@ int im_downsample_2x(const sift3d_image *const src, sift3d_image *const dst)
  * @param dst The destination image.
  * @return Returns SIFT3D_SUCCESS or SIFT3D_FAILURE.
  */
-int im_copy_dims(const sift3d_image * const src, sift3d_image * dst)
-{
+static int im_copy_dims(const sift3d_image * const src, sift3d_image * dst) {
     if (src->data == NULL)
         return SIFT3D_FAILURE;
 
@@ -706,7 +678,7 @@ void im_free(sift3d_image * im)
 }
 
 /* Find the maximum absolute value of an image */
-float im_max_abs(const sift3d_image *const im) {
+static float im_max_abs(const sift3d_image *const im) {
 
     float max;
     int x, y, z, c;
@@ -764,16 +736,6 @@ int im_subtract(sift3d_image * src1, sift3d_image * src2, sift3d_image * dst)
         SIFT3D_IM_GET_VOX(src1, x, y, z, c) -
         SIFT3D_IM_GET_VOX(src2, x, y, z, c);
     SIFT3D_IM_LOOP_END_C return SIFT3D_SUCCESS;
-}
-
-/* Zero an image. */
-void im_zero(sift3d_image * im)
-{
-    int x, y, z, c;
-
-    SIFT3D_IM_LOOP_START_C(im, x, y, z, c)
-        SIFT3D_IM_GET_VOX(im, x, y, z, c) = 0.0f;
-    SIFT3D_IM_LOOP_END_C
 }
 
 /* Convolve_sep for general filters */
@@ -942,10 +904,10 @@ static int convolve_sep(const sift3d_image * const src,
  * im_permute(src, dst, 0, 1) -- permute x with y in src
  *                              and save to dst
  */
-int im_permute(const sift3d_image * const src, const int dim1, const int dim2,
-               sift3d_image * const dst)
-{
-    register int x, y, z, c;
+static int im_permute(const sift3d_image * const src,
+                      const int dim1, const int dim2,
+                      sift3d_image * const dst) {
+    int x, y, z, c;
 
     // Verify inputs
     if (dim1 < 0 || dim2 < 0 || dim1 > 3 || dim2 > 3) {
@@ -987,8 +949,8 @@ int im_permute(const sift3d_image * const src, const int dim1, const int dim2,
     src_coords[dim2] = temp;
 
     // Copy the datum
-    SIFT3D_IM_GET_VOX(dst, x, y, z, c) = SIFT3D_IM_GET_VOX(src, 
-                                                           src_coords[0], src_coords[1], src_coords[2], c);
+    SIFT3D_IM_GET_VOX(dst, x, y, z, c) =
+        SIFT3D_IM_GET_VOX(src, src_coords[0], src_coords[1], src_coords[2], c);
 
     SIFT3D_IM_LOOP_END_C 
 
@@ -1249,10 +1211,9 @@ apply_sep_f_quit:
  *
  * Note that the kernel data will be copied, so the user can free it without 
  * affecting f. */
-int init_Sep_FIR_filter(sift3d_sep_fir_filter *const f, const int dim, const int width,
-                        const float *const kernel, const int symmetric)
-{
-
+static int init_Sep_FIR_filter(sift3d_sep_fir_filter *const f,
+                               const int dim, const int width,
+                               const float *const kernel, const int symmetric) {
     const size_t kernel_size = width * sizeof(float);
 
     // Save the data
@@ -1272,8 +1233,7 @@ int init_Sep_FIR_filter(sift3d_sep_fir_filter *const f, const int dim, const int
 }
 
 /* Free a Sep_FIR_Filter. */
-void cleanup_Sep_FIR_filter(sift3d_sep_fir_filter *const f)
-{
+static void cleanup_Sep_FIR_filter(sift3d_sep_fir_filter *const f) {
     if (f->kernel != NULL) {
         free(f->kernel);
         f->kernel = NULL;
@@ -1304,10 +1264,9 @@ void init_im(sift3d_image *const im)
 #ifndef SIFT3D_GAUSS_WIDTH_FCTR
 #define SIFT3D_GAUSS_WIDTH_FCTR 3.0
 #endif
-int init_Gauss_filter(sift3d_gauss_filter * const gauss, const double sigma,
-                      const int dim)
-{
-
+static int init_Gauss_filter(sift3d_gauss_filter * const gauss,
+                             const double sigma,
+                             const int dim) {
     float *kernel;
     double x;
     float acc;
@@ -1360,10 +1319,10 @@ init_Gauss_filter_quit:
 }
 
 /* Initialize a Gaussian filter to go from scale s_cur to s_next. */
-int init_Gauss_incremental_filter(sift3d_gauss_filter * const gauss,
-                                  const double s_cur, const double s_next,
-                                  const int dim)
-{
+static int init_Gauss_incremental_filter(sift3d_gauss_filter * const gauss,
+                                         const double s_cur,
+                                         const double s_next,
+                                         const int dim) {
     double sigma;
 
     if (s_cur > s_next) {
@@ -1384,8 +1343,7 @@ int init_Gauss_incremental_filter(sift3d_gauss_filter * const gauss,
 }
 
 /* Free a sift3d_gauss_filter */
-void cleanup_Gauss_filter(sift3d_gauss_filter * gauss)
-{
+static void cleanup_Gauss_filter(sift3d_gauss_filter * gauss) {
     cleanup_Sep_FIR_filter(&gauss->f);
 }
 
@@ -1401,7 +1359,6 @@ void init_GSS_filters(sift3d_gss_filters * const gss)
  * pyramid. */
 int make_gss(sift3d_gss_filters * const gss, const sift3d_pyramid * const pyr)
 {
-
     sift3d_image *cur, *next;
     int o, s;
 
@@ -1455,7 +1412,6 @@ int make_gss(sift3d_gss_filters * const gss, const sift3d_pyramid * const pyr)
  * unless it is reinitialized. */
 void cleanup_GSS_filters(sift3d_gss_filters * const gss)
 {
-
     int i;
 
     const int num_filters = gss->num_filters;
@@ -1675,4 +1631,80 @@ void cleanup_Slab(sift3d_slab * const slab)
 {
     if (slab->buf != NULL)
         free(slab->buf);
+}
+
+
+// Public API
+
+void sift3d_free_image (sift3d_image *image) {
+    im_free (image);
+    free (image);
+}
+
+sift3d_image* sift3d_make_image (const int nx, const int ny, const int nz, const int nc) {
+    sift3d_image *image = malloc (sizeof (sift3d_image));
+    if (init_im_with_dims (image, nx, ny, nz, nc)) {
+        goto failure;
+    }
+
+    return image;
+
+failure:
+    sift3d_free_image (image);
+    return NULL;
+}
+
+sift3d_image* sift3d_read_image(const char *path) {
+    sift3d_image *image = malloc (sizeof (sift3d_image));
+    init_im (image);
+
+    if (im_read (path, image)) {
+        goto failure;
+    }
+
+    return image;
+
+failure:
+    sift3d_free_image (image);
+    return NULL;
+}
+
+float* sift3d_image_data(const sift3d_image *image) {
+    return image->data;
+}
+
+sift3d_mat_rm* sift3d_make_mat_rm() {
+    sift3d_mat_rm *matrix = malloc (sizeof (sift3d_mat_rm));
+    if (init_Mat_rm (matrix, 0, 0, SIFT3D_FLOAT, 0)) {
+        goto failure;
+    }
+
+    return matrix;
+
+failure:
+    sift3d_free_mat_rm (matrix);
+    return NULL;
+}
+
+void sift3d_free_mat_rm (sift3d_mat_rm *matrix) {
+    cleanup_Mat_rm (matrix);
+    free (matrix);
+}
+
+void* sift3d_mat_rm_data (sift3d_mat_rm *matrix) {
+    return &matrix->u.data_float;
+}
+
+void sift3d_mat_rm_dimensions (const sift3d_mat_rm *matrix, int *num_cols, int *num_rows) {
+    if (num_cols != NULL) {
+        *num_cols = matrix->num_cols;
+    }
+
+    if (num_rows != NULL) {
+        *num_rows = matrix->num_rows;
+    }
+}
+
+sift3d_mat_type sift3d_mat_rm_type (const sift3d_mat_rm *matrix) {
+    return matrix->type;
 }

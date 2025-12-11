@@ -7,7 +7,10 @@
  * -----------------------------------------------------------------------------
  */
 
-#include "imtypes.h"
+#ifndef __SIFT3D_IMMACROS_H__
+#define __SIFT3D_IMMACROS_H__
+
+#include "imtypes_private.h"
 
 #ifdef SIFT3D_MEX
 #include <uchar.h>
@@ -15,9 +18,6 @@
 #else
 #include "stdio.h"
 #endif
-
-#ifndef _IMMACROS_H
-#define _IMMACROS_H
 
 #ifdef __cplusplus
 extern "C" {

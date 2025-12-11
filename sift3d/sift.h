@@ -1,79 +1,79 @@
-/* -----------------------------------------------------------------------------
- * sift.h
- * -----------------------------------------------------------------------------
- * Copyright (c) 2015-2016 Blaine Rister et al., see LICENSE for details.
- * -----------------------------------------------------------------------------
- * Public header for sift.c
- * -----------------------------------------------------------------------------
- */
+#ifndef __SIFT3D__H__
+#define __SIFT3D__H__
 
-#include "imtypes.h"
-
-#ifndef _SIFT_H
-#define _SIFT_H
+#include <imtypes.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-void init_Keypoint_store(sift3d_keypoint_store *const kp);
+// Detector
 
-int init_Keypoint(sift3d_keypoint *const key);
+SIFT3D_EXPORT sift3d_detector*
+sift3d_make_detector();
 
-int resize_Keypoint_store(sift3d_keypoint_store *const kp, const size_t num);
+SIFT3D_EXPORT void
+sift3d_free_detector(sift3d_detector*);
 
-int copy_Keypoint(const sift3d_keypoint *const src, sift3d_keypoint *const dst);
+SIFT3D_EXPORT int
+sift3d_detector_set_peak_thresh(sift3d_detector *const, const double);
 
-void cleanup_Keypoint_store(sift3d_keypoint_store *const kp);
+SIFT3D_EXPORT int
+sift3d_detector_set_corner_thresh(sift3d_detector *const, const double);
 
-void init_SIFT3D_Descriptor_store(sift3d_descriptor_store *const desc);
+SIFT3D_EXPORT int
+sift3d_detector_set_num_kp_levels(sift3d_detector *const, const unsigned int);
 
-void cleanup_SIFT3D_Descriptor_store(sift3d_descriptor_store *const desc);
+SIFT3D_EXPORT int
+sift3d_detector_set_sigma_n(sift3d_detector *const, const double);
 
-int set_peak_thresh_SIFT3D(sift3d_detector *const sift3d,
-                           const double peak_thresh);
+SIFT3D_EXPORT int
+sift3d_detector_set_sigma0(sift3d_detector *const, const double);
 
-int set_corner_thresh_SIFT3D(sift3d_detector *const sift3d,
-                             const double corner_thresh);
+SIFT3D_EXPORT int
+sift3d_detect_keypoints(sift3d_detector *const,
+                        const sift3d_image *const,
+                        sift3d_keypoint_store *const);
 
-int set_num_kp_levels_SIFT3D(sift3d_detector *const sift3d,
-                             const unsigned int num_kp_levels);
+SIFT3D_EXPORT int
+sift3d_detector_has_gpyr(const sift3d_detector *const);
 
-int set_sigma_n_SIFT3D(sift3d_detector *const sift3d,
-                       const double sigma_n);
+SIFT3D_EXPORT int
+sift3d_extract_descriptors(sift3d_detector *const,
+                           const sift3d_keypoint_store *const,
+                           sift3d_descriptor_store *const);
 
-int set_sigma0_SIFT3D(sift3d_detector *const sift3d,
-                      const double sigma_n);
+// Keypoint store
 
-int init_SIFT3D(sift3d_detector *sift3d);
+SIFT3D_EXPORT sift3d_keypoint_store*
+sift3d_make_keypoint_store();
 
-void cleanup_SIFT3D(sift3d_detector *const sift3d);
+SIFT3D_EXPORT void
+sift3d_free_keypoint_store(sift3d_keypoint_store*);
 
-int SIFT3D_detect_keypoints(sift3d_detector *const sift3d, const sift3d_image *const im,
-                            sift3d_keypoint_store *const kp);
+SIFT3D_EXPORT int
+sift3d_keypoint_store_to_mat_rm(const sift3d_keypoint_store *const,
+                                sift3d_mat_rm *const);
 
-int SIFT3D_have_gpyr(const sift3d_detector *const sift3d);
+SIFT3D_EXPORT int
+sift3d_keypoint_store_save(const char *path,
+                           const sift3d_keypoint_store *const);
 
-int SIFT3D_extract_descriptors(sift3d_detector *const sift3d, 
-                               const sift3d_keypoint_store *const kp, 
-                               sift3d_descriptor_store *const desc);
+// Descriptor store
 
-int Keypoint_store_to_Mat_rm(const sift3d_keypoint_store *const kp, sift3d_mat_rm *const mat);
+SIFT3D_EXPORT sift3d_descriptor_store*
+sift3d_make_descriptor_store();
 
-int SIFT3D_Descriptor_coords_to_Mat_rm(
-    const sift3d_descriptor_store *const store, 
-    sift3d_mat_rm *const mat);
+SIFT3D_EXPORT void
+sift3d_free_descriptor_store(sift3d_descriptor_store*);
 
-int SIFT3D_Descriptor_store_to_Mat_rm(const sift3d_descriptor_store *const store, 
-                                      sift3d_mat_rm *const mat);
+SIFT3D_EXPORT int
+sift3d_descriptor_store_save(const char *path,
+                             const sift3d_descriptor_store *const);
 
-int Mat_rm_to_SIFT3D_Descriptor_store(const sift3d_mat_rm *const mat, 
-                                      sift3d_descriptor_store *const store);
-
-int write_Keypoint_store(const char *path, const sift3d_keypoint_store *const kp);
-
-int write_SIFT3D_Descriptor_store(const char *path, 
-                                  const sift3d_descriptor_store *const desc);
+SIFT3D_EXPORT int
+sift3d_descriptor_store_to_mat_rm(const sift3d_descriptor_store *const,
+                                  sift3d_mat_rm *const);
 
 #ifdef __cplusplus
 }

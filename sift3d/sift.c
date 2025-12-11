@@ -13,10 +13,10 @@
 #include <math.h>
 #include <assert.h>
 #include <float.h>
-#include "imtypes.h"
+#include <sift.h>
+#include "imtypes_private.h"
 #include "immacros.h"
-#include "imutil.h"
-#include "sift.h"
+#include "imutil_private.h"
 
 /* Implementation options */
 //#define SIFT3D_ORI_SOLID_ANGLE_WEIGHT // Weight bins by solid angle
@@ -329,14 +329,14 @@ static int cart2bary(const sift3d_cvec * const cart, const sift3d_tri * const tr
 /* Initialize a sift3d_keypoint_store for first use.
  * This does not need to be called to reuse the store
  * for a new image. */
-void init_Keypoint_store(sift3d_keypoint_store *const kp) {
+static void init_Keypoint_store(sift3d_keypoint_store *const kp) {
     init_Slab(&kp->slab);
     kp->buf = (sift3d_keypoint *) kp->slab.buf;
 }
 
 /* Initialize a sift3d_keypoint struct for use. This sets up the internal pointers,
  * and nothing else. If called on a valid sift3d_keypoint struct, it has no effect. */
-int init_Keypoint(sift3d_keypoint *const key) {
+static int init_Keypoint(sift3d_keypoint *const key) {
     // Initialize the orientation matrix with static memory
     return init_Mat_rm_p(&key->R, key->r_data, IM_NDIMS, IM_NDIMS, 
                          SIFT3D_FLOAT, SIFT3D_FALSE);
@@ -347,7 +347,7 @@ int init_Keypoint(sift3d_keypoint *const key) {
  * Note: This function must re-initialize some internal data if it was moved. 
  * This does not affect the end user, but it affects the implementation of 
  * init_Keypoint. */
-int resize_Keypoint_store(sift3d_keypoint_store *const kp, const size_t num) {
+static int resize_Keypoint_store(sift3d_keypoint_store *const kp, const size_t num) {
 
     void *const buf_old = kp->slab.buf;
 
@@ -369,7 +369,7 @@ int resize_Keypoint_store(sift3d_keypoint_store *const kp, const size_t num) {
 }
 
 /* Copy one sift3d_keypoint struct into another. */
-int copy_Keypoint(const sift3d_keypoint *const src, sift3d_keypoint *const dst) {
+static int copy_Keypoint(const sift3d_keypoint *const src, sift3d_keypoint *const dst) {
 
     // Copy the shallow data 
     dst->xd = src->xd;
@@ -385,20 +385,20 @@ int copy_Keypoint(const sift3d_keypoint *const src, sift3d_keypoint *const dst) 
 
 /* Free all memory associated with a Keypoint_store. kp cannot be
  * used after calling this function, unless re-initialized. */
-void cleanup_Keypoint_store(sift3d_keypoint_store *const kp) {
+static void cleanup_Keypoint_store(sift3d_keypoint_store *const kp) {
     cleanup_Slab(&kp->slab);
 }
 
 /* Initialize a SIFT_Descriptor_store for first use.
  * This does not need to be called to reuse the store
  * for a new image. */
-void init_SIFT3D_Descriptor_store(sift3d_descriptor_store *const desc) {
+static void init_SIFT3D_Descriptor_store(sift3d_descriptor_store *const desc) {
     desc->buf = NULL;
 }
 
 /* Free all memory associated with a SIFT3D_Descriptor_store. desc
  * cannot be used after calling this function, unless re-initialized. */
-void cleanup_SIFT3D_Descriptor_store(sift3d_descriptor_store *const desc) {
+static void cleanup_SIFT3D_Descriptor_store(sift3d_descriptor_store *const desc) {
     free(desc->buf);
 }
 
@@ -496,8 +496,8 @@ static int set_scales_SIFT3D(sift3d_detector *const sift3d, const double sigma0,
 }
 
 /* Sets the peak threshold, checking that it is in the interval (0, inf) */
-int set_peak_thresh_SIFT3D(sift3d_detector *const sift3d,
-                           const double peak_thresh) {
+int sift3d_detector_set_peak_thresh(sift3d_detector *const sift3d,
+                                    const double peak_thresh) {
     if (peak_thresh <= 0.0 || peak_thresh > 1) {
         SIFT3D_ERR("sift3d_detector peak_thresh must be in the interval (0, 1]. "
                    "Provided: %f \n", peak_thresh);
@@ -509,8 +509,8 @@ int set_peak_thresh_SIFT3D(sift3d_detector *const sift3d,
 }
 
 /* Sets the corner threshold, checking that it is in the interval [0, 1]. */
-int set_corner_thresh_SIFT3D(sift3d_detector *const sift3d,
-                             const double corner_thresh) {
+int sift3d_detector_set_corner_thresh(sift3d_detector *const sift3d,
+                                      const double corner_thresh) {
 
     if (corner_thresh < 0.0 || corner_thresh > 1.0) {
         SIFT3D_ERR("sift3d_detector corner_thresh must be in the interval "
@@ -524,8 +524,8 @@ int set_corner_thresh_SIFT3D(sift3d_detector *const sift3d,
 
 /* Sets the number of levels per octave. This function will resize the
  * internal data. */
-int set_num_kp_levels_SIFT3D(sift3d_detector *const sift3d,
-                             const unsigned int num_kp_levels) {
+int sift3d_detector_set_num_kp_levels(sift3d_detector *const sift3d,
+                                      const unsigned int num_kp_levels) {
 
     const sift3d_pyramid *const gpyr = &sift3d->gpyr;
 
@@ -534,8 +534,8 @@ int set_num_kp_levels_SIFT3D(sift3d_detector *const sift3d,
 
 /* Sets the nominal scale parameter of the input data, checking that it is 
  * nonnegative. */
-int set_sigma_n_SIFT3D(sift3d_detector *const sift3d,
-                       const double sigma_n) {
+int sift3d_detector_set_sigma_n(sift3d_detector *const sift3d,
+                                const double sigma_n) {
 
     const double sigma0 = sift3d->gpyr.sigma0;
 
@@ -550,8 +550,8 @@ int set_sigma_n_SIFT3D(sift3d_detector *const sift3d,
 
 /* Sets the scale parameter of the first level of octave 0, checking that it
  * is nonnegative. */
-int set_sigma0_SIFT3D(sift3d_detector *const sift3d,
-                      const double sigma0) {
+int sift3d_detector_set_sigma0(sift3d_detector *const sift3d,
+                               const double sigma0) {
 
     const double sigma_n = sift3d->gpyr.sigma_n;
 
@@ -565,7 +565,7 @@ int set_sigma0_SIFT3D(sift3d_detector *const sift3d,
 }
 
 /* Initialize a sift3d_detector struct with the default parameters. */
-int init_SIFT3D(sift3d_detector *sift3d) {
+static int init_SIFT3D(sift3d_detector *sift3d) {
 
     sift3d_pyramid *const dog = &sift3d->dog;
     sift3d_pyramid *const gpyr = &sift3d->gpyr;
@@ -596,11 +596,11 @@ int init_SIFT3D(sift3d_detector *sift3d) {
     // Save data
     dog->first_level = gpyr->first_level = -1;
     sift3d->dense_rotate = dense_rotate;
-    if (set_sigma_n_SIFT3D(sift3d, sigma_n) ||
-        set_sigma0_SIFT3D(sift3d, sigma0) ||
-        set_peak_thresh_SIFT3D(sift3d, peak_thresh) ||
-        set_corner_thresh_SIFT3D(sift3d, corner_thresh) ||
-        set_num_kp_levels_SIFT3D(sift3d, num_kp_levels))
+    if (sift3d_detector_set_sigma_n(sift3d, sigma_n) ||
+        sift3d_detector_set_sigma0(sift3d, sigma0) ||
+        sift3d_detector_set_peak_thresh(sift3d, peak_thresh) ||
+        sift3d_detector_set_corner_thresh(sift3d, corner_thresh) ||
+        sift3d_detector_set_num_kp_levels(sift3d, num_kp_levels))
         return SIFT3D_FAILURE;
 
     return SIFT3D_SUCCESS;
@@ -608,7 +608,7 @@ int init_SIFT3D(sift3d_detector *sift3d) {
 
 /* Free all memory associated with a sift3d_detector struct. sift3d cannot be reused
  * unless it is reinitialized. */
-void cleanup_SIFT3D(sift3d_detector *const sift3d) {
+static void cleanup_SIFT3D(sift3d_detector *const sift3d) {
 
     // Clean up the image copy
     im_free(&sift3d->im);
@@ -1148,7 +1148,6 @@ static int assign_orientations(sift3d_detector *const sift3d,
     // Rebuild the keypoint buffer in place
     kp_pos = kp->buf;
     for (i = 0; i < kp->slab.num; i++) {
-
         sift3d_keypoint *const key = kp->buf + i;
 
         // Check if the keypoint is valid
@@ -1215,9 +1214,9 @@ static int verify_keys(const sift3d_keypoint_store *const kp, const sift3d_image
 /* Detect keypoint locations and orientations. You must initialize
  * the sift3d_detector struct, image, and keypoint store with the appropriate
  * functions prior to calling this function. */
-int SIFT3D_detect_keypoints(sift3d_detector *const sift3d, const sift3d_image *const im,
+int sift3d_detect_keypoints(sift3d_detector *const sift3d,
+                            const sift3d_image *const im,
                             sift3d_keypoint_store *const kp) {
-
     // Verify inputs
     if (im->nc != 1) {
         SIFT3D_ERR("SIFT3D_detect_keypoints: invalid number "
@@ -1293,10 +1292,10 @@ static int icos_hist_bin(const sift3d_detector * const sift3d,
 
 /* Helper routine to interpolate over the histograms of a
  * sift3d_detector descriptor. */
-void SIFT3D_desc_acc_interp(const sift3d_detector * const sift3d, 
-                            const sift3d_cvec * const vbins, 
-                            const sift3d_cvec * const grad,
-                            sift3d_descriptor * const desc) {
+static void SIFT3D_desc_acc_interp(const sift3d_detector * const sift3d, 
+                                   const sift3d_cvec * const vbins, 
+                                   const sift3d_cvec * const grad,
+                                   sift3d_descriptor * const desc) {
 
     sift3d_cvec dvbins;
     sift3d_hist *hist;
@@ -1542,8 +1541,7 @@ static int extract_descrip(sift3d_detector *const sift3d, const sift3d_image *co
  * initialization. 
  *
  * Note: sift3d must be initialized before calling this function. */
-int SIFT3D_have_gpyr(const sift3d_detector *const sift3d) {
-
+int sift3d_detector_has_gpyr(const sift3d_detector *const sift3d) {
     const sift3d_pyramid *const gpyr = &sift3d->gpyr;
 
     return gpyr->levels != NULL && gpyr->num_levels != 0 && 
@@ -1560,10 +1558,10 @@ int SIFT3D_have_gpyr(const sift3d_detector *const sift3d) {
  *  kp - keypoint list populated by a feature detector 
  *  desc - (initialized) struct to hold the descriptors
  *  use_gpyr - see im for details */
-static int _SIFT3D_extract_descriptors(sift3d_detector *const sift3d, 
-                                       const sift3d_pyramid *const gpyr, const sift3d_keypoint_store *const kp, 
-                                       sift3d_descriptor_store *const desc) {
-
+static int do_extract_descriptors(sift3d_detector *const sift3d,
+                                  const sift3d_pyramid *const gpyr,
+                                  const sift3d_keypoint_store *const kp,
+                                  sift3d_descriptor_store *const desc) {
     int i, ret;
 
     const sift3d_image *const first_level = 
@@ -1615,16 +1613,15 @@ static int _SIFT3D_extract_descriptors(sift3d_detector *const sift3d,
  * Return value:
  *  Returns SIFT3D_SUCCESS on success, SIFT3D_FAILURE otherwise.
  */
-int SIFT3D_extract_descriptors(sift3d_detector *const sift3d, 
+int sift3d_extract_descriptors(sift3d_detector *const sift3d, 
                                const sift3d_keypoint_store *const kp, 
                                sift3d_descriptor_store *const desc) {
-
     // Verify inputs
     if (verify_keys(kp, &sift3d->im))
         return SIFT3D_FAILURE;
 
     // Check if a Gaussian scale-space pyramid is available for processing
-    if (!SIFT3D_have_gpyr(sift3d)) {
+    if (!sift3d_detector_has_gpyr(sift3d)) {
         SIFT3D_ERR("SIFT3D_extract_descriptors: no Gaussian pyramid is "
                    "available. Make sure SIFT3D_detect_keypoints was "
                    "called prior to calling this function. \n");
@@ -1632,7 +1629,7 @@ int SIFT3D_extract_descriptors(sift3d_detector *const sift3d,
     }
 
     // Extract features
-    if (_SIFT3D_extract_descriptors(sift3d, &sift3d->gpyr, kp, desc))
+    if (do_extract_descriptors(sift3d, &sift3d->gpyr, kp, desc))
         return SIFT3D_FAILURE;
 
     return SIFT3D_SUCCESS;
@@ -1645,8 +1642,8 @@ int SIFT3D_extract_descriptors(sift3d_detector *const sift3d,
  *  [xn yn zn] 
  * 
  * mat must be initialized. */
-int Keypoint_store_to_Mat_rm(const sift3d_keypoint_store *const kp, sift3d_mat_rm *const mat) {
-
+int sift3d_keypoint_store_to_mat_rm(const sift3d_keypoint_store *const kp,
+                                    sift3d_mat_rm *const mat) {
     int i;
 
     const int num = kp->slab.num;
@@ -1674,45 +1671,7 @@ int Keypoint_store_to_Mat_rm(const sift3d_keypoint_store *const kp, sift3d_mat_r
     return SIFT3D_SUCCESS;
 }
 
-/* Convert sift3d_detector desriptors to a coordinate matrix. This function has the same
- * output format as Keypoint_store_to_sift3d_mat_rm */
-int SIFT3D_Descriptor_coords_to_Mat_rm(
-    const sift3d_descriptor_store *const store, 
-    sift3d_mat_rm *const mat) {
-
-    int i;
-
-    const int num_rows = store->num;
-    const int num_cols = IM_NDIMS;
-
-    // Verify inputs
-    if (num_rows < 1) {
-        printf("SIFT3D_Descriptor_coords_to_Mat_rm: invalid number of "
-               "descriptors: %d \n", num_rows);
-        return SIFT3D_FAILURE;
-    }
-
-    // Resize the output
-    mat->type = SIFT3D_DOUBLE;
-    mat->num_rows = num_rows;
-    mat->num_cols = num_cols;
-    if (resize_Mat_rm(mat))
-        return SIFT3D_FAILURE;
-
-    // Copy the data
-    for (i = 0; i < num_rows; i++) {
-
-        const sift3d_descriptor *const desc = store->buf + i;
-
-        SIFT3D_MAT_RM_GET(mat, i, 0, double) = desc->xd;
-        SIFT3D_MAT_RM_GET(mat, i, 1, double) = desc->yd;
-        SIFT3D_MAT_RM_GET(mat, i, 2, double) = desc->zd;
-    }
-
-    return SIFT3D_SUCCESS;
-}
-
-/* Convert sift3d_detector descriptors to a matrix.
+/* Convert SIFT3D descriptors to a matrix.
  *
  * Output format:
  *  [x y z el0 el1 ... el767]
@@ -1722,7 +1681,7 @@ int SIFT3D_Descriptor_coords_to_Mat_rm(
  * mat must be initialized prior to calling this function. mat will be resized.
  * The type of mat will be changed to float.
  */
-int SIFT3D_Descriptor_store_to_Mat_rm(const sift3d_descriptor_store *const store, 
+int sift3d_descriptor_store_to_mat_rm(const sift3d_descriptor_store *const store,
                                       sift3d_mat_rm *const mat) {
     int i, j, a, p;
 
@@ -1767,57 +1726,6 @@ int SIFT3D_Descriptor_store_to_Mat_rm(const sift3d_descriptor_store *const store
     return SIFT3D_SUCCESS;
 }
 
-/* Convert a sift3d_mat_rm to a descriptor store. See 
- * SIFT3D_Descriptor_store_to_sift3d_mat_rm for the input format. */
-int Mat_rm_to_SIFT3D_Descriptor_store(const sift3d_mat_rm *const mat, 
-                                      sift3d_descriptor_store *const store) {
-
-    int i, j, a, p;
-
-    const int num_rows = mat->num_rows;
-    const int num_cols = mat->num_cols;
-
-    // Verify inputs
-    if (num_rows < 1 || num_cols != IM_NDIMS + DESC_NUMEL) {
-        SIFT3D_ERR("Mat_rm_to_SIFT3D_Descriptor_store: invalid matrix "
-                   "dimensions: [%d X %d] \n", num_rows, num_cols);
-        return SIFT3D_FAILURE;
-    }
-    if (mat->type != SIFT3D_FLOAT) {
-        SIFT3D_ERR("Mat_rm_to_SIFT3D_Descriptor_store: matrix must "
-                   "have type SIFT3D_FLOAT");
-        return SIFT3D_FAILURE;
-    }
-
-    /* Resize the descriptor store */
-    if (resize_SIFT3D_Descriptor_store(store, num_rows))
-        return SIFT3D_FAILURE;
-
-    // Copy the data
-    for (i = 0; i < num_rows; i++) {
-
-        sift3d_descriptor *const desc = store->buf + i;
-
-        // Copy the coordinates
-        desc->xd = SIFT3D_MAT_RM_GET(mat, i, 0, float);
-        desc->yd = SIFT3D_MAT_RM_GET(mat, i, 1, float);
-        desc->zd = SIFT3D_MAT_RM_GET(mat, i, 2, float);
-        desc->sd = sigma0_default;
-
-        // Copy the feature vector
-        for (j = 0; j < DESC_NUM_TOTAL_HIST; j++) {
-            sift3d_hist *const hist = desc->hists + j;
-            HIST_LOOP_START(a, p)
-                const int col = DESC_MAT_GET_COL(j, a, p);
-            HIST_GET(hist, a, p) = 
-                SIFT3D_MAT_RM_GET(mat, i, col, float);
-            HIST_LOOP_END
-                }
-    }
-    
-    return SIFT3D_SUCCESS;
-}
-
 /* Write a sift3d_keypoint_store to a text file. The keypoints are stored in a matrix
  * (.csv, .csv.gz), where each keypoint is a row. The elements of each row are
  * as follows:
@@ -1831,8 +1739,7 @@ int Mat_rm_to_SIFT3D_Descriptor_store(const sift3d_mat_rm *const mat,
  *      pow(2, o)
  * s - the scale coordinate
  * ori(ij) - the ith row, jth column of the orientation matrix */
-int write_Keypoint_store(const char *path, const sift3d_keypoint_store *const kp) {
-
+int sift3d_keypoint_store_save(const char *path, const sift3d_keypoint_store *const kp) {
     sift3d_mat_rm mat;
     int i, i_R, j_R;
 
@@ -1894,9 +1801,8 @@ write_kp_quit:
 
 /* Write sift3d_detector descriptors to a text file.
  * See SIFT3D_Descriptor_store_to_sift3d_mat_rm for the file format. */
-int write_SIFT3D_Descriptor_store(const char *path, 
-                                  const sift3d_descriptor_store *const desc) {
-
+int sift3d_descriptor_store_save(const char *path,
+                                 const sift3d_descriptor_store *const desc) {
     sift3d_mat_rm mat;
 
     // Initialize the matrix
@@ -1904,7 +1810,7 @@ int write_SIFT3D_Descriptor_store(const char *path,
         return SIFT3D_FAILURE;
      
     // Write the data into the matrix 
-    if (SIFT3D_Descriptor_store_to_Mat_rm(desc, &mat))
+    if (sift3d_descriptor_store_to_mat_rm(desc, &mat))
         goto write_desc_quit;
 
     // Write the matrix to the file
@@ -1918,4 +1824,51 @@ int write_SIFT3D_Descriptor_store(const char *path,
 write_desc_quit:
     cleanup_Mat_rm(&mat);
     return SIFT3D_FAILURE;
+}
+
+
+// Public API
+
+sift3d_detector* sift3d_make_detector() {
+    sift3d_detector *detector = malloc (sizeof (sift3d_detector));
+
+    if (init_SIFT3D (detector)) {
+        // FIXME: Is it safe to cleanup it? Hell I know
+        goto failure;
+    }
+
+    return detector;
+
+failure:
+    sift3d_free_detector (detector);
+    return NULL;
+}
+
+void sift3d_free_detector(sift3d_detector *detector) {
+    cleanup_SIFT3D (detector);
+    free (detector);
+}
+
+sift3d_keypoint_store* sift3d_make_keypoint_store() {
+    sift3d_keypoint_store *store = malloc (sizeof (sift3d_keypoint_store));
+    init_Keypoint_store (store);
+
+    return store;
+}
+
+void sift3d_free_keypoint_store(sift3d_keypoint_store *store) {
+    cleanup_Keypoint_store (store);
+    free (store);
+}
+
+sift3d_descriptor_store* sift3d_make_descriptor_store() {
+    sift3d_descriptor_store *store = malloc (sizeof (sift3d_descriptor_store));
+    init_SIFT3D_Descriptor_store (store);
+
+    return store;
+}
+
+void sift3d_free_descriptor_store(sift3d_descriptor_store *store) {
+    cleanup_SIFT3D_Descriptor_store (store);
+    free (store);
 }
