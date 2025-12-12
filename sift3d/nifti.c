@@ -7,7 +7,8 @@
  * -----------------------------------------------------------------------------
  */
 
-/* SIFT3D includes */ 
+/* SIFT3D includes */
+#include <imutil.h>
 #include "imutil_private.h"
 #include "immacros.h"
 #include "nifti.h"

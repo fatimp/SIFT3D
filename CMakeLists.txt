@@ -8,6 +8,8 @@ set (SIFT3D_VERSION ${SIFT3D_VERSION_MAJOR}.${SIFT3D_VERSION_MINOR})
 
 set (CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake")
 
+option (WITH_EXAMPLES "Build examples" ON)
+
 find_package (OpenMP)
 if (OPENMP_FOUND)
   set (CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} ${OpenMP_C_FLAGS}")
@@ -15,11 +17,13 @@ if (OPENMP_FOUND)
 endif (OPENMP_FOUND)
 
 find_package (LAPACK REQUIRED)
-find_package (NIFTI)
 
-if (NIFTI_FOUND)
+if (WITH_EXAMPLES)
+  find_package (NIFTI REQUIRED)
   find_package (ZLIB REQUIRED)
-endif(NIFTI_FOUND)
+endif (WITH_EXAMPLES)
 
 add_subdirectory (sift3d)
-add_subdirectory (cli)
+if (WITH_EXAMPLES)
+  add_subdirectory (cli)
+endif (WITH_EXAMPLES)
