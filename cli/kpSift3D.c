@@ -119,6 +119,8 @@ int main(int argc, char *argv[]) {
         goto done;
     }
 
+    sift3d_keypoint_store_sort_by_strength (kp, 100);
+
     // Optionally write the keypoints 
     if (keys_path != NULL && sift3d_keypoint_store_save (keys_path, kp)) {
         fprintf(stderr, "Failed to write the keypoints to %s\n", keys_path);

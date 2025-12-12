@@ -162,6 +162,7 @@ typedef struct {
     double xd, yd, zd;          // sub-pixel x, y, z
     double  sd;             // absolute scale
     int o, s;                   // pyramid indices
+    float strength;
 } sift3d_keypoint;
 
 /* Struct to hold keypoints */

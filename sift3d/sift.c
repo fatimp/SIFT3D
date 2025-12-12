@@ -861,6 +861,7 @@ static int detect_extrema(sift3d_detector *sift3d, sift3d_keypoint_store *kp) {
         key->xd = (double) x;
         key->yd = (double) y;
         key->zd = (double) z;
+        key->strength = fabsf (pcur);
     }
     SIFT3D_IM_LOOP_END
         SIFT3D_PYR_LOOP_END
@@ -1743,12 +1744,13 @@ int sift3d_keypoint_store_save(const char *path, const sift3d_keypoint_store *co
     int i, i_R, j_R;
 
     // sift3d_keypoint data format constants
-    const int kp_x = 0; // column of x-coordinate
-    const int kp_y = 1; // column of y-coordinate
-    const int kp_z = 2; // column of z-coordinate
-    const int kp_o = 3; // column of octave index
-    const int kp_s = 4; // column of s-coordinate
-    const int kp_ori = 5; // first column of the orientation matrix
+    const int kp_str = 0; // column of x-coordinate
+    const int kp_x   = 1; // column of x-coordinate
+    const int kp_y   = 2; // column of y-coordinate
+    const int kp_z   = 3; // column of z-coordinate
+    const int kp_o   = 4; // column of octave index
+    const int kp_s   = 5; // column of s-coordinate
+    const int kp_ori = 6; // first column of the orientation matrix
     const int ori_numel = IM_NDIMS * IM_NDIMS; // Number of orientation 
     // elements
     const int num_rows = kp->slab.num;
@@ -1764,6 +1766,9 @@ int sift3d_keypoint_store_save(const char *path, const sift3d_keypoint_store *co
 
         const sift3d_keypoint *const key = kp->buf + i;
         const sift3d_mat_rm *const R = &key->R;
+
+        // Write strength
+        SIFT3D_MAT_RM_GET(&mat, i, kp_str, double) = key->strength;
 
         // Write the coordinates 
         SIFT3D_MAT_RM_GET(&mat, i, kp_x, double) = key->xd;
@@ -1825,6 +1830,12 @@ write_desc_quit:
     return SIFT3D_FAILURE;
 }
 
+static int keypoint_strength_cmp (const void *p1, const void *p2) {
+    const sift3d_keypoint *kp1 = p1;
+    const sift3d_keypoint *kp2 = p2;
+
+    return (kp1->strength < kp2->strength) ? 1 : -1;
+}
 
 // Public API
 
@@ -1870,4 +1881,12 @@ sift3d_descriptor_store* sift3d_make_descriptor_store() {
 void sift3d_free_descriptor_store(sift3d_descriptor_store *store) {
     cleanup_SIFT3D_Descriptor_store (store);
     free (store);
+}
+
+void sift3d_keypoint_store_sort_by_strength (sift3d_keypoint_store *const store, int limit) {
+    qsort (store->buf, store->slab.num, sizeof (sift3d_keypoint), keypoint_strength_cmp);
+
+    if (store->slab.num > limit && limit != 0) {
+        resize_Keypoint_store (store, limit);
+    }
 }

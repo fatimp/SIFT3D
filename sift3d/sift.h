@@ -59,6 +59,9 @@ SIFT3D_EXPORT int
 sift3d_keypoint_store_save(const char *path,
                            const sift3d_keypoint_store *const);
 
+SIFT3D_EXPORT void
+sift3d_keypoint_store_sort_by_strength (sift3d_keypoint_store *const, int limit);
+
 // Descriptor store
 
 SIFT3D_EXPORT sift3d_descriptor_store*
