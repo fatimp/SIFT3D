@@ -1105,19 +1105,19 @@ static int assign_orientation_thresh(const sift3d_image *const im,
  * Note that this stage will modify kp, likely
  * rejecting some keypoints as orientationally
  * unstable. */
-static int assign_orientations(sift3d_detector *const sift3d, 
+static int assign_orientations(sift3d_detector *const sift3d,
                                sift3d_keypoint_store *const kp) {
     sift3d_keypoint *kp_pos;
     size_t num;
     int i, err;
 
-    // Iterate over the keypoints 
+    // Iterate over the keypoints
     err = SIFT3D_SUCCESS;
 #pragma omp parallel for
     for (i = 0; i < kp->slab.num; i++) {
 
         sift3d_keypoint *const key = kp->buf + i;
-        const sift3d_image *const level = 
+        const sift3d_image *const level =
             SIFT3D_PYR_IM_GET(&sift3d->gpyr, key->o, key->s);
         sift3d_mat_rm *const R = &key->R;
         const sift3d_cvec vcenter = {key->xd, key->yd, key->zd};
@@ -1139,7 +1139,6 @@ static int assign_orientations(sift3d_detector *const sift3d,
             err = SIFT3D_FAILURE;
             continue;
         }
-        
     }
 
     // Check for errors
@@ -1157,7 +1156,7 @@ static int assign_orientations(sift3d_detector *const sift3d,
         // Copy this keypoint to the next available spot
         if (copy_Keypoint(key, kp_pos))
             return SIFT3D_FAILURE;
-               
+
         kp_pos++;
     }
 
