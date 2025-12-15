@@ -1582,7 +1582,6 @@ static int do_extract_descriptors(sift3d_detector *const sift3d,
     ret = SIFT3D_SUCCESS;
 #pragma omp parallel for
     for (i = 0; i < desc->num; i++) {
-
         const sift3d_keypoint *const key = kp->buf + i;
         sift3d_descriptor *const descrip = desc->buf + i;
         const sift3d_image *const level = 
@@ -1591,7 +1590,7 @@ static int do_extract_descriptors(sift3d_detector *const sift3d,
         if (extract_descrip(sift3d, level, key, descrip)) {
             ret = SIFT3D_FAILURE;
         }
-    }   
+    }
 
     return ret;
 }
@@ -1884,7 +1883,16 @@ void sift3d_free_descriptor_store(sift3d_descriptor_store *store) {
 }
 
 void sift3d_keypoint_store_sort_by_strength (sift3d_keypoint_store *const store, int limit) {
-    qsort (store->buf, store->slab.num, sizeof (sift3d_keypoint), keypoint_strength_cmp);
+    sift3d_keypoint *buf = store->buf;
+    size_t i;
+    qsort (buf, store->slab.num, sizeof (sift3d_keypoint), keypoint_strength_cmp);
+
+    // Fuck this storage layout. A matrix in a keypoint has a pointer
+    // which points... to a buffer inside that keypoint!
+    for (i = 0; i < store->slab.num; i++) {
+        sift3d_keypoint *kp = &buf[i];
+        kp->R.u.data_float = kp->r_data;
+    }
 
     if (store->slab.num > limit && limit != 0) {
         resize_Keypoint_store (store, limit);
