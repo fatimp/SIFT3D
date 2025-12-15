@@ -28,7 +28,7 @@
 
 /* Default sift3d_detector parameters. These may be overriden by 
  * the calling appropriate functions. */
-const double peak_thresh_default = 0.1; // DoG peak threshold
+const double peak_thresh_default = 0.03; // DoG peak threshold
 const int num_kp_levels_default = 3; // Number of levels per octave in which keypoints are found
 const double corner_thresh_default = 0.4; // Minimum corner score
 const double sigma_n_default = 1.15; // Nominal scale of input data
@@ -498,7 +498,7 @@ static int set_scales_SIFT3D(sift3d_detector *const sift3d, const double sigma0,
 /* Sets the peak threshold, checking that it is in the interval (0, inf) */
 int sift3d_detector_set_peak_thresh(sift3d_detector *const sift3d,
                                     const double peak_thresh) {
-    if (peak_thresh <= 0.0 || peak_thresh > 1) {
+    if (peak_thresh <= 00 || peak_thresh > 1) {
         SIFT3D_ERR("sift3d_detector peak_thresh must be in the interval (0, 1]. "
                    "Provided: %f \n", peak_thresh);
         return SIFT3D_FAILURE;
@@ -736,7 +736,7 @@ static int detect_extrema(sift3d_detector *sift3d, sift3d_keypoint_store *kp) {
 
     sift3d_image *cur, *prev, *next;
     sift3d_keypoint *key;
-    float pcur, dogmax, peak_thresh;
+    float pcur, peak_thresh;
     int o, s, x, y, z, x_start, x_end, y_start, y_end, z_start, z_end, num;
 
     const sift3d_pyramid *const dog = &sift3d->dog;
@@ -817,16 +817,7 @@ static int detect_extrema(sift3d_detector *sift3d, sift3d_keypoint_store *kp) {
         prev = SIFT3D_PYR_IM_GET(dog, o, s - 1);
     cur = SIFT3D_PYR_IM_GET(dog, o, s);
     next = SIFT3D_PYR_IM_GET(dog, o, s + 1);
-
-    // Find maximum DoG value at this level
-    dogmax = 0.0f;
-    SIFT3D_IM_LOOP_START(cur, x, y, z)
-        dogmax = SIFT3D_MAX(dogmax, 
-                            fabsf(SIFT3D_IM_GET_VOX(cur, x, y, z, 0)));
-    SIFT3D_IM_LOOP_END
-
-        // Adjust threshold
-        peak_thresh = sift3d->peak_thresh * dogmax;
+    peak_thresh = sift3d->peak_thresh;
 
     // Loop through all non-boundary pixels
     x_start = y_start = z_start = 1;

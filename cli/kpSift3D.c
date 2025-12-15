@@ -119,7 +119,7 @@ int main(int argc, char *argv[]) {
         goto done;
     }
 
-    sift3d_keypoint_store_sort_by_strength (kp, 100);
+    sift3d_keypoint_store_sort_by_strength (kp, 0);
 
     // Optionally write the keypoints 
     if (keys_path != NULL && sift3d_keypoint_store_save (keys_path, kp)) {
