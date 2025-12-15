@@ -1692,7 +1692,7 @@ void sift3d_free_mat_rm (sift3d_mat_rm *matrix) {
 }
 
 void* sift3d_mat_rm_data (sift3d_mat_rm *matrix) {
-    return &matrix->u.data_float;
+    return matrix->u.data_float;
 }
 
 void sift3d_mat_rm_dimensions (const sift3d_mat_rm *matrix, int *num_cols, int *num_rows) {
