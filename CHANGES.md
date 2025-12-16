@@ -95,3 +95,16 @@
 * Convert PET scans to SUV
 * Read Dicom series which are stored in unusual orientations (e.g., Y-Z planes instead of X-Y). This is needed for reading 3D mammograms.
 * Support 4D Nifti files
+
+## 2.0.0
+
+* Incompatible change: Huge code cleanup and removal of code responsible for
+  searching for matches between descriptors and RANSAC fitting (because its
+  performance was really bad) and also Matlab bindings (what is Matlab exactly?)
+* Incompatible change: A completely new and progrmmer-friendly API. No more
+  stack-allocated structures, no more unprefixed internal functions exposed to
+  the user.
+* Improvement: A new function `sift_keypoint_store_sort_by_strength()` which
+  sorts keypoints and removes the weakest (the most unstable) keypoints.
+* Bug fix: Fix an integer overflow in internal functions `resize_Mat_rm` and
+  `im_resize` which caused crashes for images with dimensions for about 800^3.
