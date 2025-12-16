@@ -1541,7 +1541,7 @@ static int extract_descrip(sift3d_detector *const sift3d, const sift3d_image *co
  * initialization. 
  *
  * Note: sift3d must be initialized before calling this function. */
-int sift3d_detector_has_gpyr(const sift3d_detector *const sift3d) {
+static int detector_has_gpyr(const sift3d_detector *const sift3d) {
     const sift3d_pyramid *const gpyr = &sift3d->gpyr;
 
     return gpyr->levels != NULL && gpyr->num_levels != 0 && 
@@ -1620,7 +1620,7 @@ int sift3d_extract_descriptors(sift3d_detector *const sift3d,
         return SIFT3D_FAILURE;
 
     // Check if a Gaussian scale-space pyramid is available for processing
-    if (!sift3d_detector_has_gpyr(sift3d)) {
+    if (!detector_has_gpyr(sift3d)) {
         SIFT3D_ERR("SIFT3D_extract_descriptors: no Gaussian pyramid is "
                    "available. Make sure SIFT3D_detect_keypoints was "
                    "called prior to calling this function. \n");
