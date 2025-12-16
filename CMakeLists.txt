@@ -27,3 +27,9 @@ add_subdirectory (sift3d)
 if (WITH_EXAMPLES)
   add_subdirectory (cli)
 endif (WITH_EXAMPLES)
+
+# Optionally build the docs
+find_package (Doxygen)
+if (DOXYGEN_FOUND)
+  add_subdirectory (doc)
+endif (DOXYGEN_FOUND)
