@@ -31,14 +31,14 @@ SIFT3D_EXPORT void
 sift3d_free_detector(sift3d_detector*);
 
 /**
- * @brief Set the relative DoG peak threshold.
+ * @brief Set the DoG extremum threshold.
  *
- * Keypoints which are weaker than this threshold are discarded.
- * The interval for this parameter: [0, 1].
+ * Keypoints those absoulute DoG value is less than this value are discarded.
+ * The interval for this parameter: [0, ∞).
  * @return `SIFT_SUCCESS` on success, `SIFT_FAILURE` on failure
  */
 SIFT3D_EXPORT int
-sift3d_detector_set_peak_thresh(sift3d_detector *const, const double);
+sift3d_detector_set_extremum_thresh(sift3d_detector *const, const double);
 
 /**
  * @brief Set the corner threshold.

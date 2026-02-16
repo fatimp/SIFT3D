@@ -217,7 +217,7 @@ typedef struct _sift3d_detector {
     // Image to process
     sift3d_image im;
     // Parameters
-    double peak_thresh; // Keypoint peak threshold
+    double extremum_thresh; // Keypoint extremum threshold
     double corner_thresh; // Keypoint corner threshold
     int dense_rotate; // If true, dense descriptors are rotation-invariant
 } sift3d_detector;

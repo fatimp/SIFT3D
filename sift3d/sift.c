@@ -28,7 +28,7 @@
 
 /* Default sift3d_detector parameters. These may be overriden by 
  * the calling appropriate functions. */
-const double peak_thresh_default = 0.1; // DoG peak threshold
+const double extremum_thresh_default = 0.02; // DoG extremum threshold
 const int num_kp_levels_default = 3; // Number of levels per octave in which keypoints are found
 const double corner_thresh_default = 0.4; // Minimum corner score
 const double sigma_n_default = 1.15; // Nominal scale of input data
@@ -495,16 +495,16 @@ static int set_scales_SIFT3D(sift3d_detector *const sift3d, const double sigma0,
     return make_gss(gss, gpyr);
 }
 
-/* Sets the peak threshold, checking that it is in the interval (0, inf) */
-int sift3d_detector_set_peak_thresh(sift3d_detector *const sift3d,
-                                    const double peak_thresh) {
-    if (peak_thresh <= 0.0 || peak_thresh > 1) {
-        SIFT3D_ERR("sift3d_detector peak_thresh must be in the interval (0, 1]. "
-                   "Provided: %f \n", peak_thresh);
+/* Sets the extremum threshold, checking that it is in the interval [0, inf) */
+int sift3d_detector_set_extremum_thresh(sift3d_detector *const sift3d,
+                                        const double extremum_thresh) {
+    if (extremum_thresh < 0) {
+        SIFT3D_ERR("sift3d_detector extremum_thresh must be in the interval [0, ∞). "
+                   "Provided: %f \n", extremum_thresh);
         return SIFT3D_FAILURE;
     }
 
-    sift3d->peak_thresh = peak_thresh;
+    sift3d->extremum_thresh = extremum_thresh;
     return SIFT3D_SUCCESS;
 }
 
@@ -572,7 +572,7 @@ static int init_SIFT3D(sift3d_detector *sift3d) {
     sift3d_gss_filters *const gss = &sift3d->gss;
 
     // Initialize to defaults
-    const double peak_thresh = peak_thresh_default;
+    const double extremum_thresh = extremum_thresh_default;
     const double corner_thresh = corner_thresh_default;
     const int num_kp_levels = num_kp_levels_default;
     const double sigma_n = sigma_n_default;
@@ -598,7 +598,7 @@ static int init_SIFT3D(sift3d_detector *sift3d) {
     sift3d->dense_rotate = dense_rotate;
     if (sift3d_detector_set_sigma_n(sift3d, sigma_n) ||
         sift3d_detector_set_sigma0(sift3d, sigma0) ||
-        sift3d_detector_set_peak_thresh(sift3d, peak_thresh) ||
+        sift3d_detector_set_extremum_thresh(sift3d, extremum_thresh) ||
         sift3d_detector_set_corner_thresh(sift3d, corner_thresh) ||
         sift3d_detector_set_num_kp_levels(sift3d, num_kp_levels))
         return SIFT3D_FAILURE;
@@ -736,9 +736,10 @@ static int detect_extrema(sift3d_detector *sift3d, sift3d_keypoint_store *kp) {
 
     sift3d_image *cur, *prev, *next;
     sift3d_keypoint *key;
-    float pcur, dogmax, peak_thresh;
+    float pcur;
     int o, s, x, y, z, x_start, x_end, y_start, y_end, z_start, z_end, num;
 
+    const float extremum_thresh = sift3d->extremum_thresh;
     const sift3d_pyramid *const dog = &sift3d->dog;
     const int o_start = dog->first_octave;
     const int o_end = SIFT3D_PYR_LAST_OCTAVE(dog);
@@ -818,16 +819,6 @@ static int detect_extrema(sift3d_detector *sift3d, sift3d_keypoint_store *kp) {
     cur = SIFT3D_PYR_IM_GET(dog, o, s);
     next = SIFT3D_PYR_IM_GET(dog, o, s + 1);
 
-    // Find maximum DoG value at this level
-    dogmax = 0.0f;
-    SIFT3D_IM_LOOP_START(cur, x, y, z)
-        dogmax = SIFT3D_MAX(dogmax, 
-                            fabsf(SIFT3D_IM_GET_VOX(cur, x, y, z, 0)));
-    SIFT3D_IM_LOOP_END
-
-        // Adjust threshold
-        peak_thresh = sift3d->peak_thresh * dogmax;
-
     // Loop through all non-boundary pixels
     x_start = y_start = z_start = 1;
     x_end = cur->nx - 2;
@@ -838,8 +829,8 @@ static int detect_extrema(sift3d_detector *sift3d, sift3d_keypoint_store *kp) {
         // Sample the center value
         pcur = SIFT3D_IM_GET_VOX(cur, x, y, z, 0);
 
-    // Apply the peak threshold
-    if ((pcur > peak_thresh || pcur < -peak_thresh) &&
+    // Apply the extremum threshold
+    if ((fabsf(pcur) >= extremum_thresh) &&
         // Compare to the neighbors
         ((CMP_PREV(prev, x, y, z, >, pcur) &&
           CMP_CUR(cur, x, y, z, >, pcur) &&
