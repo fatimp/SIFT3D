@@ -108,3 +108,10 @@
   sorts keypoints and removes the weakest (the most unstable) keypoints.
 * Bug fix: Fix an integer overflow in internal functions `resize_Mat_rm` and
   `im_resize` which caused crashes for images with dimensions for about 800^3.
+
+## 2.0.1
+
+* Improvement: add an option to control the number of points for
+  orientation/descriptor histogram. Build with `-DICOS_HIST=OFF` to compute
+  histograms in a 8x4 grid. The default is to compute at 12 vertices of an
+  icosahedron.
