@@ -2,6 +2,10 @@ add_library (sift3D SHARED sift.c imutil.c nifti.c)
 target_link_libraries (sift3D PRIVATE m z ${LAPACK_LIBRARIES})
 target_include_directories(sift3D PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
+if (ICOS_HIST)
+  target_compile_definitions (sift3D PRIVATE ICOS_HIST)
+endif (ICOS_HIST)
+
 if (NIFTI_FOUND)
   target_compile_definitions(sift3D PRIVATE "SIFT3D_WITH_NIFTI")
   target_include_directories(sift3D PRIVATE ${NIFTI_INCLUDE_DIRS} ${ZLIB_INCLUDE_DIR})

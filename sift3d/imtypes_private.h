@@ -39,7 +39,6 @@ extern "C" {
 #define NBINS_AZ 8      // Number of bins for azimuthal angles
 #define NBINS_PO 4      // Number of bins for polar angles
 #define NHIST_PER_DIM 4 // Number of SIFT descriptor histograms per dimension 
-#define ICOS_HIST           // Icosahedral gradient histogram
 
 /* Constants */
 #define IM_NDIMS 3 // Number of dimensions in an Image

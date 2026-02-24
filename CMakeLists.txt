@@ -9,6 +9,7 @@ set (SIFT3D_VERSION ${SIFT3D_VERSION_MAJOR}.${SIFT3D_VERSION_MINOR})
 set (CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake")
 
 option (WITH_EXAMPLES "Build examples" ON)
+option (ICOS_HIST     "More compact descriptors" ON)
 
 find_package (OpenMP)
 if (OPENMP_FOUND)
